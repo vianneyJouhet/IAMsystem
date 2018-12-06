@@ -2,6 +2,7 @@ package fr.erias.IAMsystem.normalizer;
 
 import fr.erias.IAMsystem.exceptions.InvalidCSV;
 import fr.erias.IAMsystem.exceptions.ProcessSentenceException;
+import fr.erias.IAMsystem.load.TerminologyEntry;
 
 /**
  * An interface to normalize a terminology in a CSV input format
@@ -24,4 +25,11 @@ public interface CSVlineHandler {
 	 */
 	public String getNormalizedLine();
 	
+	/**
+	 * Get normalized termnology entry
+	 * @return {@link TerminologyEntry}
+	 */
+	public TerminologyEntry getTerminologyEntry();
+
+	public void setPositionOfCodeInColumn(short positionOfCodeInColumn);
 }

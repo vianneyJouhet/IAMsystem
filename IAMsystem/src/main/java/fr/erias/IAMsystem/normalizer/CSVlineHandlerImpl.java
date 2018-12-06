@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import fr.erias.IAMsystem.exceptions.InvalidCSV;
 import fr.erias.IAMsystem.exceptions.ProcessSentenceException;
 import fr.erias.IAMsystem.load.Loader;
+import fr.erias.IAMsystem.load.TerminologyEntry;
 import fr.erias.IAMsystem.tokenizer.TokenizerNormalizer;
 
 /**
@@ -22,6 +23,9 @@ public class CSVlineHandlerImpl implements CSVlineHandler {
 	private TokenizerNormalizer tokenizerNormalizer;
 	
 	private short positionOfLabelInColumn;
+	private short positionOfCodeInColumn;
+	
+	private TerminologyEntry terminologyEntry;
 	
 	private String sep;
 	
@@ -37,16 +41,37 @@ public class CSVlineHandlerImpl implements CSVlineHandler {
 	public CSVlineHandlerImpl (Stopwords stopwords, String sep, short positionOfLabelInColumn) throws IOException {
 		this.sep = sep;
 		this.positionOfLabelInColumn = positionOfLabelInColumn;
+		this.positionOfCodeInColumn=-1;
+		this.tokenizerNormalizer = Loader.getTokenizerNormalizer(stopwords);
+		
+	}
+	
+	/**
+	 * Create an instance to normalize a terminology in a CSV format
+	 * @param stopwords An instance of {@link Stopwords}
+	 * @param sep CSV column separator
+	 * @param positionOfLabelInColumn the position of the column containing the label to normalise
+	 * @throws IOException 
+	 */
+	public CSVlineHandlerImpl (Stopwords stopwords, String sep, short positionOfLabelInColumn,short positionOfCodeInColumn) throws IOException {
+		this.sep = sep;
+		this.positionOfLabelInColumn = positionOfLabelInColumn;
+		this.positionOfCodeInColumn = positionOfCodeInColumn;
 		this.tokenizerNormalizer = Loader.getTokenizerNormalizer(stopwords);
 	}
 	
+	
+	public void setPositionOfCodeInColumn(short positionOfCodeInColumn) {
+		this.positionOfCodeInColumn = positionOfCodeInColumn;
+	}
+
 	/**
 	 * See the interface
 	 */
 	public void processLine(String line) throws InvalidCSV, ProcessSentenceException {
 		String[] columns = line.split(this.sep);
-		if (columns.length < positionOfLabelInColumn) {
-			throw new InvalidCSV(logger,"Unexpected number of columns at line");
+		if (columns.length < positionOfLabelInColumn |  columns.length < positionOfCodeInColumn ) {
+			throw new InvalidCSV(logger,"Unexpected number of columns at line " + line);
 		}
 		
 		// the term to process
@@ -70,6 +95,9 @@ public class CSVlineHandlerImpl implements CSVlineHandler {
 		sb.append(normalizedTerm);
 		sb.append("\n");
 		this.normalizedLine = sb.toString();
+		if(positionOfCodeInColumn != -1) {
+			this.terminologyEntry = new TerminologyEntry(normalizedTerm, columns[positionOfCodeInColumn]);
+		}
 	}
 	
 	/**
@@ -77,5 +105,9 @@ public class CSVlineHandlerImpl implements CSVlineHandler {
 	 */
 	public String getNormalizedLine() {
 		return(this.normalizedLine);
+	}
+
+	public TerminologyEntry getTerminologyEntry() {
+		return terminologyEntry;
 	}
 }

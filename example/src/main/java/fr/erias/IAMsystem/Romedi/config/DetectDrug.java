@@ -13,8 +13,12 @@ import fr.erias.IAMsystem.ct.CTcode;
 import fr.erias.IAMsystem.detect.DetectDictionaryEntry;
 import fr.erias.IAMsystem.detect.LevenshteinTypoLucene;
 import fr.erias.IAMsystem.detect.Synonym;
+import fr.erias.IAMsystem.exceptions.InvalidCSV;
+import fr.erias.IAMsystem.exceptions.ProcessSentenceException;
 import fr.erias.IAMsystem.exceptions.UnfoundTokenInSentence;
 import fr.erias.IAMsystem.load.Loader;
+import fr.erias.IAMsystem.normalizer.CSVlineHandlerImpl;
+import fr.erias.IAMsystem.normalizer.NormalizeTerminology;
 import fr.erias.IAMsystem.tokenizer.TokenizerNormalizer;
 import fr.erias.IAMsystem.tree.SetTokenTree;
 
@@ -28,8 +32,10 @@ public class DetectDrug {
 
 	final static Logger logger = LoggerFactory.getLogger(DetectDrug.class);
 	private DetectDictionaryEntry detectDictionaryEntry;
+	private short positionLabel=2;
+	private short positionCode=0;
 	
-	public DetectDrug() throws IOException {
+	public DetectDrug() throws IOException, InvalidCSV, ProcessSentenceException {
 		
 		// load stopwords file :
 		File stopwordsFile = new File(ConfigRomedi.STOPWORDS_FILE);
@@ -55,8 +61,13 @@ public class DetectDrug {
 		synonyms.add(levenshteinTypoLucene);
 		
 		// load the dictionary (tree datastructure)
-		File CSVFile = new File(ConfigRomedi.romediTermsNormalized);
-		SetTokenTree tokenTreeSet0 = Loader.loadTokenTree(CSVFile, stopwordsClef,"\t",3, 0);
+		File CSVFile = new File(ConfigRomedi.romediTerms);
+		File CSVFileNormalized = new File(ConfigRomedi.romediTermsNormalized);
+		CSVlineHandlerImpl csvLineHandler = new CSVlineHandlerImpl(stopwordsClef,"\t",positionLabel);
+		SetTokenTree tokenTreeSet0 = Loader.loadTokenTree(
+				new NormalizeTerminology(
+						CSVFileNormalized,true,csvLineHandler).normalizeFile(CSVFile, positionCode),
+				stopwordsClef);
 		
 		// return an instance that detects dictionary entries
 		this.detectDictionaryEntry = new DetectDictionaryEntry(tokenTreeSet0,tokenizerNormalizer,synonyms);

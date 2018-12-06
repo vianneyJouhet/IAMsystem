@@ -262,6 +262,22 @@ public class DetectDictionaryEntry {
 		}
 		return(code);
 	}
+	
+	public HashSet<String> getPreviousCodes(String[] candidateTokensArray) {
+		HashSet<String> code = new HashSet<String>();
+		SetTokenTree tempTokenTree = this.setTokenTree;
+		for (String candidate : candidateTokensArray) {
+			logger.debug("candidate : " + candidate);
+			tempTokenTree = tempTokenTree.getSetTokenTree(candidate);
+			logger.debug("number of possibilities : " + tempTokenTree.getMapTokenTree().size());
+			HashSet<String> codetemp = tempTokenTree.getCodes();
+			if (codetemp.size() != 0) {
+				logger.debug("The following code was detected for " + candidate + ": " + codetemp.toString());
+				code = codetemp;
+			}
+		}
+		return(code);
+	}
 
 	/**
 	 * Add a candidateTerm to the set of CT detected if a code is found
@@ -284,8 +300,8 @@ public class DetectDictionaryEntry {
 
 
 		// is a code associated to this candidateTerm ?
-		String code = tempSetTokenTree.getOneCode();
-		if (code == null) {
+		HashSet<String> code = tempSetTokenTree.getCodes();
+		if (code.size() == 0) {
 			// code is null but previous tokens of this candidateTerm may have a code
 			// for Example : Abces chambre anterieure oeil gauche ; abces has a code, but abces chambre doesn't
 			// so we go back to abces
@@ -302,8 +318,8 @@ public class DetectDictionaryEntry {
 			TokenTree oneTokenTree = tempSetTokenTree.getMapTokenTree().values().iterator().next().iterator().next();
 			logger.debug("depth : " + oneTokenTree.getDepth());
 			logger.debug("token : " + oneTokenTree.getToken());
-			code = getPreviousCode(oneTokenTree.getPreviousTokens());
-			if (code == null) {
+			code = getPreviousCodes(oneTokenTree.getPreviousTokens());
+			if (code.size() == 0) {
 				logger.debug("code is null again");
 				this.currentI = (currentI - candidateTokenLength) + 1 ; // i => i + 1 ; without the first token
 				return; // return
@@ -315,7 +331,7 @@ public class DetectDictionaryEntry {
 		}
 
 		// A code is found ! 
-		logger.debug("code is : " + code);
+		logger.debug("code is : " + code.toString());
 		int numberOfTokens2remove = 0 ; // last token can be a stopword. We need to remove it : 
 		for (int y = candidateTokenLength -1; y>0;y--) {
 			String lastToken = candidateTokensArray[y];

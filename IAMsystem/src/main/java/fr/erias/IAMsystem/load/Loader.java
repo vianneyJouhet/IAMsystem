@@ -4,9 +4,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,29 +128,43 @@ public class Loader {
 	 * @return A tree datastructure of the terminology
 	 * @throws IOException File not found
 	 */
-	public static SetTokenTree loadTokenTree(File fileCSV, Stopwords stopwords, String sep, int colLibNormal, int colCode) throws IOException {
+	public static SetTokenTree loadTokenTreeFromCSVFile(File fileCSV, Stopwords stopwords, String sep, int colLibNormal, int colCode) throws IOException {
 		//ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		//File file = new File(classLoader.getResource(fileName).getFile());
 		SetTokenTree tokenTreeSet0 = new SetTokenTree();
 		BufferedReader br = null;
 		br = new BufferedReader(new FileReader(fileCSV));
 		String line = null;
+		HashSet<TerminologyEntry> terminologyEntries = new HashSet<TerminologyEntry>();
 		while ((line = br.readLine()) != null) {
 			String[] columns = line.split(sep);
-			String libNormal = columns[colLibNormal];
-			if (stopwords.isStopWord(libNormal)) {
-				continue;
-			}
-			String code = columns[colCode];
-			String[] tokensArray = TokenizerNormalizer.tokenizeAlphaNum(libNormal);
-			tokensArray = removeStopWords(stopwords, tokensArray);
-			if (tokensArray.length == 0) {
-				continue;
-			}
-			TokenTree tokenTree = new TokenTree(null,tokensArray, code);
-			tokenTreeSet0.addTokenTree(tokenTree);
+			terminologyEntries.add(new TerminologyEntry(columns[colLibNormal], columns[colCode]));
 		}
 		br.close();
+		
+		return(loadTokenTree(terminologyEntries, stopwords));
+	}
+	
+	/**
+	 * Get a tree datastructure of the terminology given a TerminologyEntry set
+	 * @param fileCSV a CSV containing a column with normalized labels
+	 * @param stopwords a file containing a list of stopword ; one by line
+	 * @return A tree datastructure of the terminology
+	 * @throws IOException File not found
+	 */
+	public static SetTokenTree loadTokenTree(Set<TerminologyEntry> terminologyEntries, Stopwords stopwords){
+		SetTokenTree tokenTreeSet0 = new SetTokenTree();
+		terminologyEntries.stream().forEach(terminologyEntry -> {
+			if (!stopwords.isStopWord(terminologyEntry.getTerm())) {
+				String[] tokensArray = TokenizerNormalizer.tokenizeAlphaNum(terminologyEntry.getTerm());
+				tokensArray = removeStopWords(stopwords, tokensArray);
+				if (tokensArray.length != 0) {
+					TokenTree tokenTree = new TokenTree(null,tokensArray, terminologyEntry.getId());
+					tokenTreeSet0.addTokenTree(tokenTree);
+				}
+			}
+		});
+		
 		logger.info("tokenTreeSet0 size : " + tokenTreeSet0.getAvailableTokens().size());
 		return(tokenTreeSet0);
 	}
